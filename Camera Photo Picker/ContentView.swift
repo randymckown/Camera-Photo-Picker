@@ -12,7 +12,7 @@ import UIKit
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     var sourceType: UIImagePickerController.SourceType
-    
+
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
@@ -50,7 +50,7 @@ struct ImagePicker: UIViewControllerRepresentable {
 struct ContentView: View {
     @State private var profileImage: UIImage?
     @State private var isShowingImagePicker = false
-    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary // Default to photo library
+    @State private var sourceType: UIImagePickerController.SourceType = .camera
     
     var body: some View {
         VStack {
@@ -72,7 +72,8 @@ struct ContentView: View {
             // Buttons to open camera or photo library
             HStack {
                 Button(action: {
-                    sourceType = .camera // Set the source to camera
+                    print("Take Photo button pressed")
+                    sourceType = .camera
                     isShowingImagePicker = true
                 }) {
                     Text("Take Photo")
@@ -80,7 +81,8 @@ struct ContentView: View {
                 .padding()
                 
                 Button(action: {
-                    sourceType = .photoLibrary // Set the source to photo library
+                    print("Select Photo button pressed")
+                    sourceType = .photoLibrary
                     isShowingImagePicker = true
                 }) {
                     Text("Select Photo")
@@ -93,6 +95,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 
 #Preview {
