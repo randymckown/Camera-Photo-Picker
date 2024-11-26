@@ -1,20 +1,21 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = ImagePickerVM()
-    
+    @EnvironmentObject var model: Model  // Access model from the environment
+    @StateObject private var imagePickerVM = ImagePickerVM()  // Initialize ImagePickerVM
+
     var body: some View {
         VStack(spacing: 20) {
-            // Display the original image if available
-            if let originalImage = viewModel.originalImage {
+            // Display original image if available
+            if let profileImage = model.profileImage.flatMap({ UIImage(data: $0) }) {
                 VStack {
                     Text("Original Image")
-                    Image(uiImage: originalImage)
+                    Image(uiImage: profileImage)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 200, height: 200)
-                        .clipShape(Rectangle())
-                        .border(Color.gray, width: 1)
+                        .clipShape(Rectangle())  // Crop to square shape
+                        .border(Color.gray, width: 1)  // Border to indicate crop
                 }
             } else {
                 Image(systemName: "person.circle")
@@ -24,39 +25,46 @@ struct ContentView: View {
                     .foregroundColor(.gray)
             }
 
-            // Display the cropped image if available
-            if let croppedImage = viewModel.croppedImage {
+            // Display cropped image if available
+            if let croppedImageData = model.croppedImage,
+               let croppedImage = UIImage(data: croppedImageData) {
                 VStack {
-                    Text("Cropped Image (1:1)")
+                    Text("Cropped Image")
                     Image(uiImage: croppedImage)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 200, height: 200)
                         .clipShape(Rectangle())
+                        .overlay(
+                            Rectangle()
+                                .stroke(Color.red, lineWidth: 2)  // Adding a border for cropped area
+                        )
                         .border(Color.gray, width: 1)
                 }
+            } else {
+                Text("No cropped image available.")
             }
 
             // Buttons to open camera or photo library
             HStack {
-                Button(action: viewModel.takePhoto) {
+                Button(action: imagePickerVM.takePhoto) {
                     Text("Take Photo")
                 }
                 .padding()
-                
-                Button(action: viewModel.selectPhoto) {
+
+                Button(action: imagePickerVM.selectPhoto) {
                     Text("Select Photo")
                 }
                 .padding()
             }
         }
-        .sheet(isPresented: $viewModel.isShowingImagePicker) {
+        .sheet(isPresented: $imagePickerVM.isShowingImagePicker) {
             ImagePicker(
                 image: Binding(
-                    get: { viewModel.originalImage },
-                    set: { viewModel.setImage($0) }
+                    get: { imagePickerVM.originalImage },
+                    set: { imagePickerVM.setImage($0, model: model) }  // Pass model to setImage
                 ),
-                sourceType: viewModel.sourceType
+                sourceType: imagePickerVM.sourceType
             )
         }
     }

@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct Camera_Photo_PickerApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
-}
+    
+    @StateObject private var model = Model()  // Model instance for environment
+
+       var body: some Scene {
+           WindowGroup {
+               ContentView()
+                   .environmentObject(model)  // Pass Model as an environment object
+           }
+       }
+   }
