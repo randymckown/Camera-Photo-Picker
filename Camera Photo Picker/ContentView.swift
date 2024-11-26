@@ -1,66 +1,21 @@
-//
-//  ContentView.swift
-//  Camera Photo Picker
-//
-//  Created by Randy McKown on 11/14/24.
-//
-
 import SwiftUI
-import UIKit
 
-// Image Picker Wrapper for SwiftUI
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    var sourceType: UIImagePickerController.SourceType
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = sourceType
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let selectedImage = info[.originalImage] as? UIImage {
-                parent.image = selectedImage
-            }
-            picker.dismiss(animated: true)
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
-        }
-    }
-}
-
-// SwiftUI View with Camera and Photo Library Options
 struct ContentView: View {
-    @State private var profileImage: UIImage?
-    @State private var isShowingImagePicker = false
-    @State private var sourceType: UIImagePickerController.SourceType = .camera
+    @StateObject private var viewModel = ImagePickerVM()
     
     var body: some View {
-        VStack {
-            // Display the profile image if available
-            if let profileImage = profileImage {
-                Image(uiImage: profileImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
-                    .clipShape(Circle())
+        VStack(spacing: 20) {
+            // Display the original image if available
+            if let originalImage = viewModel.originalImage {
+                VStack {
+                    Text("Original Image")
+                    Image(uiImage: originalImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 200, height: 200)
+                        .clipShape(Rectangle())
+                        .border(Color.gray, width: 1)
+                }
             } else {
                 Image(systemName: "person.circle")
                     .resizable()
@@ -68,35 +23,44 @@ struct ContentView: View {
                     .frame(width: 200, height: 200)
                     .foregroundColor(.gray)
             }
-            
+
+            // Display the cropped image if available
+            if let croppedImage = viewModel.croppedImage {
+                VStack {
+                    Text("Cropped Image (1:1)")
+                    Image(uiImage: croppedImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 200, height: 200)
+                        .clipShape(Rectangle())
+                        .border(Color.gray, width: 1)
+                }
+            }
+
             // Buttons to open camera or photo library
             HStack {
-                Button(action: {
-                    print("Take Photo button pressed")
-                    sourceType = .camera
-                    isShowingImagePicker = true
-                }) {
+                Button(action: viewModel.takePhoto) {
                     Text("Take Photo")
                 }
                 .padding()
                 
-                Button(action: {
-                    print("Select Photo button pressed")
-                    sourceType = .photoLibrary
-                    isShowingImagePicker = true
-                }) {
+                Button(action: viewModel.selectPhoto) {
                     Text("Select Photo")
                 }
                 .padding()
             }
         }
-        .sheet(isPresented: $isShowingImagePicker) {
-            ImagePicker(image: $profileImage, sourceType: sourceType)
+        .sheet(isPresented: $viewModel.isShowingImagePicker) {
+            ImagePicker(
+                image: Binding(
+                    get: { viewModel.originalImage },
+                    set: { viewModel.setImage($0) }
+                ),
+                sourceType: viewModel.sourceType
+            )
         }
     }
 }
-
-
 
 #Preview {
     ContentView()
