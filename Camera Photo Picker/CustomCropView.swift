@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 struct CustomCropView: View {
     let originalImage: UIImage
     @Binding var croppedImageData: Data?
@@ -76,9 +74,22 @@ struct CustomCropView: View {
             .cornerRadius(8)
         }
     }
+    
+    // Function to fix the orientation of the image based on its EXIF data
+    private func fixImageOrientation(_ image: UIImage) -> UIImage {
+        if image.imageOrientation == .up {
+            return image
+        }
+
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        let correctedImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        return correctedImage
+    }
 
     private func cropImage(imageSize: CGSize) {
-        guard let cgImage = originalImage.cgImage else { return }
+        guard let cgImage = fixImageOrientation(originalImage).cgImage else { return }
 
         // Calculate the scale factor for width and height
         let scaleX = originalImage.size.width / imageSize.width
