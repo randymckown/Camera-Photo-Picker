@@ -7,10 +7,12 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct Camera_Photo_PickerApp: App {
-    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     @StateObject private var model = Model()  // Model instance for environment
 
        var body: some Scene {
@@ -20,3 +22,11 @@ struct Camera_Photo_PickerApp: App {
            }
        }
    }
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    
+    // Lock orientation to portrait
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        return .portrait  // Explicitly use UIInterfaceOrientationMask.portrait
+    }
+}

@@ -5,8 +5,21 @@ struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     var sourceType: UIImagePickerController.SourceType
 
+    // Custom ImagePickerController with fixed orientation
+    class FixedOrientationImagePickerController: UIImagePickerController {
+        override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+            // Lock to portrait
+            return .portrait
+        }
+
+        override var shouldAutorotate: Bool {
+            // Prevent rotation
+            return false
+        }
+    }
+
     func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
+        let picker = FixedOrientationImagePickerController() // Use the fixed orientation picker
         picker.delegate = context.coordinator
         picker.sourceType = sourceType
         return picker
@@ -37,3 +50,4 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
     }
 }
+
