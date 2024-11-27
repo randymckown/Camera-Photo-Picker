@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var model: Model  // Access model from the environment
     @StateObject private var imagePickerVM = ImagePickerVM()  // Initialize ImagePickerVM
+    @State private var isCroppingActive = false  // State to track whether the cropping view is shown
 
     var body: some View {
         VStack(spacing: 20) {
@@ -56,6 +57,17 @@ struct ContentView: View {
                     Text("Select Photo")
                 }
                 .padding()
+
+                // New "Crop Image" button
+                Button(action: {
+                    isCroppingActive.toggle()  // Show or hide the cropping view
+                }) {
+                    Text("Crop Image")
+                }
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
         }
         .sheet(isPresented: $imagePickerVM.isShowingImagePicker) {
@@ -67,9 +79,22 @@ struct ContentView: View {
                 sourceType: imagePickerVM.sourceType
             )
         }
+        .sheet(isPresented: $isCroppingActive) {
+            if let profileImage = model.profileImage.flatMap({ UIImage(data: $0) }) {
+                CustomCropView(
+                    originalImage: profileImage,
+                    croppedImageData: $model.croppedImage // Provide a Binding to model.croppedImage
+                )
+                .interactiveDismissDisabled(true) // Disable the swipe-to-dismiss gesture
+            } else {
+                Text("No image available to crop.")
+            }
+        }
+
     }
 }
 
 #Preview {
     ContentView()
 }
+
