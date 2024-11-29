@@ -25,8 +25,15 @@ struct Camera_Photo_PickerApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     
-    // Lock orientation to portrait
+    // Control lock/unlock of orientation dynamically
+    static var isOrientationLocked = false
+
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        return .portrait  // Explicitly use UIInterfaceOrientationMask.portrait
+        // Check for supported devices and lock orientation if necessary
+        if AppDelegate.isOrientationLocked {
+            // Return portrait if locked, otherwise allow all orientations
+            return .portrait
+        }
+        return .allButUpsideDown
     }
 }
