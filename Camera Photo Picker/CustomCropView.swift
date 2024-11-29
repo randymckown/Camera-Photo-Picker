@@ -7,6 +7,11 @@ struct CustomCropView: View {
 
     @State private var cropBoxPosition: CGPoint = CGPoint(x: 100, y: 100) // Initial position
     @State private var cropBoxSize: CGSize = CGSize(width: 200, height: 200) // Fixed crop box size (1:1 aspect ratio)
+    
+    @State private var cropBoxScale: CGFloat = 1.0 // Tracks the zoom scale
+    @State private var cropBoxBaseSize: CGSize = CGSize(width: 200, height: 200) // The original crop box size
+    @State private var cropBoxActualSize: CGSize = CGSize(width: 200, height: 200) // The dynamically resized size
+
 
     var body: some View {
         VStack {
@@ -28,37 +33,47 @@ struct CustomCropView: View {
                         .frame(width: imageSize.width, height: imageSize.height)
 
                     // Draggable crop box (1:1 aspect ratio)
+                    // Draggable and resizable crop box (1:1 aspect ratio)
                     Rectangle()
                         .stroke(Color.white, lineWidth: 2)
-                        .frame(width: cropBoxSize.width, height: cropBoxSize.height)
+                        .frame(width: cropBoxActualSize.width, height: cropBoxActualSize.height)
                         .position(cropBoxPosition)
-                        .contentShape(Rectangle()) // Ensure the gesture works across the whole crop box area
+                        .contentShape(Rectangle())
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-                                    // Debug print to check if the gesture is being recognized
-                                    print("Drag Gesture Changed - Location: \(value.location)")
-
-                                    // Ensure that the crop box is within bounds
-                                    let minX = cropBoxSize.width / 2
+                                    // Bounds for dragging
+                                    let minX = cropBoxActualSize.width / 2
                                     let maxX = imageSize.width - minX
-                                    let minY = cropBoxSize.height / 2
+                                    let minY = cropBoxActualSize.height / 2
                                     let maxY = imageSize.height - minY
 
-                                    // Update the crop box position
+                                    // Update position while ensuring it stays within bounds
                                     cropBoxPosition = CGPoint(
                                         x: min(max(value.location.x, minX), maxX),
                                         y: min(max(value.location.y, minY), maxY)
                                     )
-
-                                    // Debug print to check if crop box position is updated
-                                    print("Updated Crop Box Position: \(cropBoxPosition)")
-                                }
-                                .onEnded { _ in
-                                    // Debug print to check if drag has ended
-                                    print("Drag Gesture Ended - Final Position: \(cropBoxPosition)")
                                 }
                         )
+                        .gesture(
+                                MagnificationGesture()
+                                    .onChanged { scale in
+                                        // Calculate new size dynamically during the gesture
+                                        let newWidth = cropBoxBaseSize.width * scale
+                                        let newHeight = cropBoxBaseSize.height * scale
+
+                                        // Clamp the size to a reasonable range (e.g., 100x100 to 400x400)
+                                        let clampedWidth = min(max(newWidth, 100), 400)
+                                        let clampedHeight = min(max(newHeight, 100), 400)
+
+                                        cropBoxActualSize = CGSize(width: clampedWidth, height: clampedHeight)
+                                    }
+                                    .onEnded { _ in
+                                        // Save the final size as the new base size
+                                        cropBoxBaseSize = cropBoxActualSize
+                                    }
+                            )
+
                 }
             }
             .aspectRatio(originalImage.size, contentMode: .fit)
@@ -91,43 +106,28 @@ struct CustomCropView: View {
     private func cropImage(imageSize: CGSize) {
         guard let cgImage = fixImageOrientation(originalImage).cgImage else { return }
 
-        // Calculate the scale factor for width and height
+        // Calculate scale factors for converting view coordinates to image coordinates
         let scaleX = originalImage.size.width / imageSize.width
         let scaleY = originalImage.size.height / imageSize.height
-
-        // Use the larger scale to ensure proper scaling for both dimensions
         let scale = max(scaleX, scaleY)
 
-        // Calculate the origin of the crop area relative to the image
-        let cropOriginX = (cropBoxPosition.x - cropBoxSize.width / 2) * scale
-        let cropOriginY = (cropBoxPosition.y - cropBoxSize.height / 2) * scale
+        // Calculate the crop box origin and size relative to the image
+        let cropOriginX = (cropBoxPosition.x - cropBoxActualSize.width / 2) * scale
+        let cropOriginY = (cropBoxPosition.y - cropBoxActualSize.height / 2) * scale
+        let cropWidth = cropBoxActualSize.width * scale
+        let cropHeight = cropBoxActualSize.height * scale
 
-        // Ensure the crop box size maintains a 1:1 aspect ratio
-        let cropWidth = cropBoxSize.width * scale
-        let cropHeight = cropBoxSize.height * scale
-
-        // Ensure the crop box is within the bounds of the image
         let cropRect = CGRect(
-            x: cropOriginX,
-            y: cropOriginY,
-            width: cropWidth,
-            height: cropHeight
+            x: max(0, cropOriginX),
+            y: max(0, cropOriginY),
+            width: min(originalImage.size.width - cropOriginX, cropWidth),
+            height: min(originalImage.size.height - cropOriginY, cropHeight)
         )
 
-        // Print debug information
-        print("Image Size: \(originalImage.size.width) x \(originalImage.size.height)")
-        print("Crop Box Position: \(cropOriginX), \(cropOriginY)")
-        print("Crop Box Size: \(cropWidth), \(cropHeight)")
-
-        // Perform cropping operation
         if let croppedCGImage = cgImage.cropping(to: cropRect) {
             let croppedUIImage = UIImage(cgImage: croppedCGImage)
-
-            // Print the size of the cropped image to verify it matches expectations
-            print("Cropped Image Size: \(croppedUIImage.size.width) x \(croppedUIImage.size.height)")
-
-            // Save the cropped image data
             croppedImageData = croppedUIImage.pngData()
         }
     }
+
 }
